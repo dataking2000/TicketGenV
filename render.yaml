@@ -1,9 +1,13 @@
 services:
   - type: web
-    name: ticket-generator
+    name: ticketgenv
+    plan: free
     env: static
     buildCommand: ""
     staticPublishPath: .
+    envVars:
+      - key: NODE_ENV
+        value: production
     routes:
       - type: rewrite
         source: /*
