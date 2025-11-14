@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Landscape Ticket Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --dark: #343a40;
+            --light: #f8f9fa;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2c3e50, #1a1a2e);
+            color: var(--light);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .ticket-preview-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #8e2de2, #4a00e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e0e0ff;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #8e2de2;
+            background: rgba(142, 45, 226, 0.15);
+            box-shadow: 0 0 0 3px rgba(142, 45, 226, 0.3);
+        }
+        
+        button {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 15px;
+            transition: all 0.3s;
+            font-size: 16px;
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(106, 17, 203, 0.6);
+        }
+        
+        /* Landscape Ticket Styling */
+        .ticket {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 2.5 / 1; /* Landscape ratio */
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+        }
+        
+        @media (max-width: 768px) {
+            .ticket {
+                aspect-ratio: unset;
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .ticket-image {
+                width: 100% !important;
+                height: 200px;
+            }
+            
+            .ticket-image::after {
+                display: none;
+            }
+            
+            .ticket-content {
+                width: 100% !important;
+            }
+        }
+        
+        .ticket-image {
+            width: 40%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 20px;
+        }
+        
+        .ticket-image::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 20px,
+                rgba(255, 255, 255, 0.4) 20px,
+                rgba(255, 255, 255, 0.4) 40px
+            );
+        }
+        
+        .artist-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            padding: 20px;
+            z-index: 2;
+        }
+        
+        .artist-name {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .ticket-content {
+            width: 60%;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .ticket-header {
+            background: var(--gradient);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ticket-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .ticket-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+        
+        .ticket-body {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 500px) {
+            .ticket-body {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .ticket-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ticket-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+        
+        .ticket-label {
+            font-weight: 600;
+            color: #d0b3ff;
+        }
+        
+        .ticket-value {
+            color: white;
+            font-weight: 500;
+            text-align: right;
+            max-width: 60%;
+        }
+        
+        .ticket-codes {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .ticket-barcode {
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        #barcode {
+            height: 70px;
+            width: 100%;
+        }
+        
+        .ticket-qr {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .qr-placeholder {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+        }
+        
+        .qr-placeholder i {
+            font-size: 50px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .ticket-footer {
+            text-align: center;
+            padding-top: 15px;
+            margin-top: 20px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+            color: #b3b3ff;
+        }
+        
+        .ticket-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .ticket-actions button {
+            flex: 1;
+            margin-top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-print {
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+        }
+        
+        .btn-print:hover {
+            background: linear-gradient(135deg, #3d4756, #252f3f);
+        }
+        
+        .file-input-container {
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .file-input-label:hover {
+            background: rgba(142, 45, 226, 0.2);
+            border-color: #8e2de2;
+        }
+        
+        .file-input-label i {
+            margin-right: 10px;
+            color: #8e2de2;
+            font-size: 1.2rem;
+        }
+        
+        #imageUpload {
+            display: none;
+        }
+        
+        .preview-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #8e2de2;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo h2 {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, #8e2de2, #4a00e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        
+        .logo i {
+            color: #8e2de2;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="logo">
+                <h2><i class="fas fa-ticket-alt"></i>TicketMaster Pro</h2>
+            </div>
+            
+            <div class="form-group">
+                <label for="eventName"><i class="fas fa-music"></i> Event Name</label>
+                <input type="text" id="eventName" value="The Weeknd: After Hours Tour">
+            </div>
+            
+            <div class="form-group">
+                <label for="eventDate"><i class="fas fa-calendar-alt"></i> Date &amp; Time</label>
+                <input type="text" id="eventDate" value="Friday, August 25, 2023 • 8:00 PM">
+            </div>
+            
+            <div class="form-group">
+                <label for="eventVenue"><i class="fas fa-map-marker-alt"></i> Venue</label>
+                <input type="text" id="eventVenue" value="Madison Square Garden • New York, NY">
+            </div>
+            
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="ticketSection"><i class="fas fa-th-large"></i> Section</label>
+                    <input type="text" id="ticketSection" value="Floor">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="ticketRow"><i class="fas fa-bars"></i> Row</label>
+                    <input type="text" id="ticketRow" value="A">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="ticketSeat"><i class="fas fa-chair"></i> Seat</label>
+                <input type="text" id="ticketSeat" value="24">
+            </div>
+            
+            <div class="form-group">
+                <label for="ticketType"><i class="fas fa-star"></i> Ticket Type</label>
+                <select id="ticketType">
+                    <option>General Admission</option>
+                    <option selected>VIP Experience</option>
+                    <option>Premium Seating</option>
+                    <option>Platinum</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="ticketPrice"><i class="fas fa-tag"></i> Price</label>
+                <input type="text" id="ticketPrice" value="$399.99">
+            </div>
+            
+            <div class="form-group">
+                <label for="orderNumber"><i class="fas fa-receipt"></i> Order #</label>
+                <input type="text" id="orderNumber" value="TM-9264-7351">
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-image"></i> Event Background Image</label>
+                <div class="file-input-container">
+                    <label class="file-input-label" for="imageUpload">
+                        <i class="fas fa-cloud-upload-alt"></i> Choose Artist Image
+                    </label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+            </div>
+            
+            <button id="updateTicket">
+                <i class="fas fa-sync-alt"></i> Update Ticket
+            </button>
+        </div>
+
+        <div class="ticket-preview-container">
+            <div class="preview-title">LANDSCAPE TICKET PREVIEW</div>
+            
+            <div class="ticket" id="ticket">
+                <div class="ticket-image" id="ticketImage" style="background-image: url('https://images.unsplash.com/photo-1619983081563-430f63602796?ixlib=rb-4.0.3&amp;ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&amp;auto=format&amp;fit=crop&amp;w=1587&amp;q=80');">
+                    <div class="artist-overlay">
+                        <div class="artist-name" id="artistName">THE WEEKND</div>
+                    </div>
+                </div>
+                
+                <div class="ticket-content">
+                    <div class="ticket-header">
+                        <h2 id="previewEvent">The Weeknd: After Hours Tour</h2>
+                        <p id="previewDate">Friday, August 25, 2023 • 8:00 PM</p>
+                    </div>
+                    
+                    <div class="ticket-body">
+                        <div class="ticket-details">
+                            <div class="ticket-row">
+                                <span class="ticket-label">Venue:</span>
+                                <span class="ticket-value" id="previewVenue">Madison Square Garden • New York, NY</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">Section:</span>
+                                <span class="ticket-value" id="previewSection">Floor</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">Row:</span>
+                                <span class="ticket-value" id="previewRow">A</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">Seat:</span>
+                                <span class="ticket-value" id="previewSeat">24</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">Type:</span>
+                                <span class="ticket-value" id="previewType">VIP Experience</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">Price:</span>
+                                <span class="ticket-value" id="previewPrice">$399.99</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ticket-codes">
+                            <div class="ticket-barcode">
+                                <svg id="barcode"></svg>
+                            </div>
+                            
+                            <div class="ticket-qr">
+                                <div class="qr-placeholder">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-footer">
+                        <div>Order #: <span id="previewOrder">TM-9264-7351</span></div>
+                        <div>Present this ticket at entry • No refunds or exchanges</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ticket-actions">
+                <button class="btn-print" id="printTicket">
+                    <i class="fas fa-print"></i> Print Ticket
+                </button>
+                <button class="btn-pdf" id="savePdf">
+                    <i class="fas fa-file-pdf"></i> Save as PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        
+        // Generate random barcode
+        function generateBarcode() {
+            const randomNumber = Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
+            JsBarcode("#barcode", randomNumber, {
+                format: "CODE128",
+                lineColor: "#8e2de2",
+                width: 2,
+                height: 70,
+                displayValue: false
+            });
+            return randomNumber;
+        }
+        
+        // Update ticket preview
+        function updateTicket() {
+            document.getElementById('previewEvent').textContent = 
+                document.getElementById('eventName').value;
+            document.getElementById('previewDate').textContent = 
+                document.getElementById('eventDate').value;
+            document.getElementById('previewVenue').textContent = 
+                document.getElementById('eventVenue').value;
+            document.getElementById('previewSection').textContent = 
+                document.getElementById('ticketSection').value;
+            document.getElementById('previewRow').textContent = 
+                document.getElementById('ticketRow').value;
+            document.getElementById('previewSeat').textContent = 
+                document.getElementById('ticketSeat').value;
+            document.getElementById('previewType').textContent = 
+                document.getElementById('ticketType').value;
+            document.getElementById('previewPrice').textContent = 
+                document.getElementById('ticketPrice').value;
+            document.getElementById('previewOrder').textContent = 
+                document.getElementById('orderNumber').value;
+            
+            // Extract artist name for overlay
+            const eventName = document.getElementById('eventName').value;
+            const artist = eventName.split(':')[0] || eventName;
+            document.getElementById('artistName').textContent = artist.toUpperCase();
+            
+            // Generate new barcode
+            generateBarcode();
+        }
+        
+        // Handle image upload
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const ticketImage = document.getElementById('ticketImage');
+                    ticketImage.style.backgroundImage = `url('${event.target.result}')`;
+                    ticketImage.style.backgroundSize = 'cover';
+                    ticketImage.style.backgroundPosition = 'center';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Print ticket
+        document.getElementById('printTicket').addEventListener('click', function() {
+            // Create a clone of the ticket for printing
+            const ticket = document.getElementById('ticket').cloneNode(true);
+            ticket.style.width = '800px';
+            ticket.style.height = '320px';
+            ticket.style.margin = '0 auto';
+            
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print Ticket</title>
+                    <style>
+                        body { 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            height: 100vh; 
+                            margin: 0; 
+                            background: #1a1a2e; 
+                        }
+                        @media print {
+                            body { background: none; }
+                            @page { size: landscape; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${ticket.outerHTML}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                                window.close();
+                            }, 200);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        });
+        
+        // Save as PDF (landscape)
+        document.getElementById('savePdf').addEventListener('click', function() {
+            const ticket = document.getElementById('ticket');
+            
+            // Temporarily adjust for PDF
+            const originalWidth = ticket.style.width;
+            const originalHeight = ticket.style.height;
+            ticket.style.width = '800px';
+            ticket.style.height = '320px';
+            
+            html2canvas(ticket, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: null
+            }).then(canvas => {
+                // Restore original dimensions
+                ticket.style.width = originalWidth;
+                ticket.style.height = originalHeight;
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [210, 100] // Landscape format
+                });
+                
+                // Calculate dimensions to fit PDF
+                const imgWidth = pdf.internal.pageSize.getWidth();
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save('concert-ticket.pdf');
+            });
+        });
+        
+        // Update on button click
+        document.getElementById('updateTicket').addEventListener('click', updateTicket);
+        
+        // Update on input change
+        const inputs = [
+            'eventName', 'eventDate', 'eventVenue', 
+            'ticketSection', 'ticketRow', 'ticketSeat',
+            'ticketType', 'ticketPrice', 'orderNumber'
+        ];
+        
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updateTicket);
+        });
+        
+        // Initialize with default values
+        updateTicket();
+    </script>
+
+</body></html>
