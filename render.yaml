@@ -1,7 +1,9 @@
-static_sites:
-  - name: ticket-app
+services:
+  - type: web
+    name: ticket-generator
+    env: static
     buildCommand: ""
-    publishDir: "."
+    staticPublishPath: .
     routes:
       - type: rewrite
         source: /*
