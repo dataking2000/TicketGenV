@@ -2,3 +2,7 @@ static_sites:
   - name: ticket-app
     buildCommand: ""
     publishDir: "."
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
