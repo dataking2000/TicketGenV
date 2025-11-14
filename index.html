@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Landscape Ticket Generator</title>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>TicketMaster Pro - Mobile Ticket Generator</title>
+    
+    <!-- Updated CDN Links -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
             --primary: #6a11cb;
@@ -132,7 +136,7 @@
         .ticket {
             width: 100%;
             max-width: 800px;
-            aspect-ratio: 2.5 / 1; /* Landscape ratio */
+            aspect-ratio: 2.5 / 1;
             background: rgba(0, 0, 0, 0.4);
             border-radius: 15px;
             overflow: hidden;
@@ -559,164 +563,193 @@
     </div>
 
     <script>
-        // Initialize jsPDF
-        const { jsPDF } = window.jspdf;
-        
-        // Generate random barcode
-        function generateBarcode() {
-            const randomNumber = Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
-            JsBarcode("#barcode", randomNumber, {
-                format: "CODE128",
-                lineColor: "#8e2de2",
-                width: 2,
-                height: 70,
-                displayValue: false
-            });
-            return randomNumber;
-        }
-        
-        // Update ticket preview
-        function updateTicket() {
-            document.getElementById('previewEvent').textContent = 
-                document.getElementById('eventName').value;
-            document.getElementById('previewDate').textContent = 
-                document.getElementById('eventDate').value;
-            document.getElementById('previewVenue').textContent = 
-                document.getElementById('eventVenue').value;
-            document.getElementById('previewSection').textContent = 
-                document.getElementById('ticketSection').value;
-            document.getElementById('previewRow').textContent = 
-                document.getElementById('ticketRow').value;
-            document.getElementById('previewSeat').textContent = 
-                document.getElementById('ticketSeat').value;
-            document.getElementById('previewType').textContent = 
-                document.getElementById('ticketType').value;
-            document.getElementById('previewPrice').textContent = 
-                document.getElementById('ticketPrice').value;
-            document.getElementById('previewOrder').textContent = 
-                document.getElementById('orderNumber').value;
-            
-            // Extract artist name for overlay
-            const eventName = document.getElementById('eventName').value;
-            const artist = eventName.split(':')[0] || eventName;
-            document.getElementById('artistName').textContent = artist.toUpperCase();
-            
-            // Generate new barcode
-            generateBarcode();
-        }
-        
-        // Handle image upload
-        document.getElementById('imageUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const ticketImage = document.getElementById('ticketImage');
-                    ticketImage.style.backgroundImage = `url('${event.target.result}')`;
-                    ticketImage.style.backgroundSize = 'cover';
-                    ticketImage.style.backgroundPosition = 'center';
-                };
-                reader.readAsDataURL(file);
+        // Wait for all libraries to load
+        window.addEventListener('load', function() {
+            // Check if required libraries are loaded
+            if (typeof window.jspdf === 'undefined') {
+                console.error('jsPDF library failed to load');
+                alert('Error: Some required libraries failed to load. Please refresh the page.');
+                return;
             }
+            
+            if (typeof JsBarcode === 'undefined') {
+                console.error('JsBarcode library failed to load');
+                alert('Error: Barcode library failed to load. Please refresh the page.');
+                return;
+            }
+            
+            // Initialize the application
+            initializeApp();
         });
-        
-        // Print ticket
-        document.getElementById('printTicket').addEventListener('click', function() {
-            // Create a clone of the ticket for printing
-            const ticket = document.getElementById('ticket').cloneNode(true);
-            ticket.style.width = '800px';
-            ticket.style.height = '320px';
-            ticket.style.margin = '0 auto';
+
+        function initializeApp() {
+            // Initialize jsPDF
+            const { jsPDF } = window.jspdf;
             
-            const printWindow = window.open('', '', 'width=900,height=600');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Print Ticket</title>
-                    <style>
-                        body { 
-                            display: flex; 
-                            justify-content: center; 
-                            align-items: center; 
-                            height: 100vh; 
-                            margin: 0; 
-                            background: #1a1a2e; 
-                        }
-                        @media print {
-                            body { background: none; }
-                            @page { size: landscape; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${ticket.outerHTML}
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() {
-                                window.print();
-                                window.close();
-                            }, 200);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        });
-        
-        // Save as PDF (landscape)
-        document.getElementById('savePdf').addEventListener('click', function() {
-            const ticket = document.getElementById('ticket');
+            // Generate random barcode
+            function generateBarcode() {
+                const randomNumber = Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
+                try {
+                    JsBarcode("#barcode", randomNumber, {
+                        format: "CODE128",
+                        lineColor: "#8e2de2",
+                        width: 2,
+                        height: 70,
+                        displayValue: false
+                    });
+                    return randomNumber;
+                } catch (error) {
+                    console.error('Barcode generation failed:', error);
+                    return '123456789012';
+                }
+            }
             
-            // Temporarily adjust for PDF
-            const originalWidth = ticket.style.width;
-            const originalHeight = ticket.style.height;
-            ticket.style.width = '800px';
-            ticket.style.height = '320px';
+            // Update ticket preview
+            function updateTicket() {
+                document.getElementById('previewEvent').textContent = 
+                    document.getElementById('eventName').value;
+                document.getElementById('previewDate').textContent = 
+                    document.getElementById('eventDate').value;
+                document.getElementById('previewVenue').textContent = 
+                    document.getElementById('eventVenue').value;
+                document.getElementById('previewSection').textContent = 
+                    document.getElementById('ticketSection').value;
+                document.getElementById('previewRow').textContent = 
+                    document.getElementById('ticketRow').value;
+                document.getElementById('previewSeat').textContent = 
+                    document.getElementById('ticketSeat').value;
+                document.getElementById('previewType').textContent = 
+                    document.getElementById('ticketType').value;
+                document.getElementById('previewPrice').textContent = 
+                    document.getElementById('ticketPrice').value;
+                document.getElementById('previewOrder').textContent = 
+                    document.getElementById('orderNumber').value;
+                
+                // Extract artist name for overlay
+                const eventName = document.getElementById('eventName').value;
+                const artist = eventName.split(':')[0] || eventName;
+                document.getElementById('artistName').textContent = artist.toUpperCase();
+                
+                // Generate new barcode
+                generateBarcode();
+            }
             
-            html2canvas(ticket, {
-                scale: 2,
-                logging: false,
-                useCORS: true,
-                backgroundColor: null
-            }).then(canvas => {
-                // Restore original dimensions
-                ticket.style.width = originalWidth;
-                ticket.style.height = originalHeight;
-                
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'mm',
-                    format: [210, 100] // Landscape format
-                });
-                
-                // Calculate dimensions to fit PDF
-                const imgWidth = pdf.internal.pageSize.getWidth();
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save('concert-ticket.pdf');
+            // Handle image upload
+            document.getElementById('imageUpload').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const ticketImage = document.getElementById('ticketImage');
+                        ticketImage.style.backgroundImage = `url('${event.target.result}')`;
+                        ticketImage.style.backgroundSize = 'cover';
+                        ticketImage.style.backgroundPosition = 'center';
+                    };
+                    reader.readAsDataURL(file);
+                }
             });
-        });
-        
-        // Update on button click
-        document.getElementById('updateTicket').addEventListener('click', updateTicket);
-        
-        // Update on input change
-        const inputs = [
-            'eventName', 'eventDate', 'eventVenue', 
-            'ticketSection', 'ticketRow', 'ticketSeat',
-            'ticketType', 'ticketPrice', 'orderNumber'
-        ];
-        
-        inputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', updateTicket);
-        });
-        
-        // Initialize with default values
-        updateTicket();
+            
+            // Print ticket
+            document.getElementById('printTicket').addEventListener('click', function() {
+                // Create a clone of the ticket for printing
+                const ticket = document.getElementById('ticket').cloneNode(true);
+                ticket.style.width = '800px';
+                ticket.style.height = '320px';
+                ticket.style.margin = '0 auto';
+                
+                const printWindow = window.open('', '', 'width=900,height=600');
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Print Ticket</title>
+                        <style>
+                            body { 
+                                display: flex; 
+                                justify-content: center; 
+                                align-items: center; 
+                                height: 100vh; 
+                                margin: 0; 
+                                background: #1a1a2e; 
+                            }
+                            @media print {
+                                body { background: none; }
+                                @page { size: landscape; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${ticket.outerHTML}
+                        <script>
+                            window.onload = function() {
+                                setTimeout(function() {
+                                    window.print();
+                                    window.close();
+                                }, 200);
+                            };
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            });
+            
+            // Save as PDF (landscape)
+            document.getElementById('savePdf').addEventListener('click', function() {
+                const ticket = document.getElementById('ticket');
+                
+                // Temporarily adjust for PDF
+                const originalWidth = ticket.style.width;
+                const originalHeight = ticket.style.height;
+                ticket.style.width = '800px';
+                ticket.style.height = '320px';
+                
+                html2canvas(ticket, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    backgroundColor: null
+                }).then(canvas => {
+                    // Restore original dimensions
+                    ticket.style.width = originalWidth;
+                    ticket.style.height = originalHeight;
+                    
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: [210, 100]
+                    });
+                    
+                    // Calculate dimensions to fit PDF
+                    const imgWidth = pdf.internal.pageSize.getWidth();
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save('concert-ticket.pdf');
+                }).catch(error => {
+                    console.error('PDF generation failed:', error);
+                    alert('Error generating PDF. Please try again.');
+                });
+            });
+            
+            // Update on button click
+            document.getElementById('updateTicket').addEventListener('click', updateTicket);
+            
+            // Update on input change
+            const inputs = [
+                'eventName', 'eventDate', 'eventVenue', 
+                'ticketSection', 'ticketRow', 'ticketSeat',
+                'ticketType', 'ticketPrice', 'orderNumber'
+            ];
+            
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', updateTicket);
+            });
+            
+            // Initialize with default values
+            updateTicket();
+        }
     </script>
 
 </body></html>
