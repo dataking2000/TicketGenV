@@ -1,0 +1,4 @@
+static_sites:
+  - name: ticket-app
+    buildCommand: ""
+    publishDir: "."
